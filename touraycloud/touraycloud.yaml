@@ -1,0 +1,56 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: ghost-deployment
+    namespace: photoenv-prod
+  spec:
+    replicas: 2
+    selector:
+      matchLabels:
+        app: ghost
+    serviceName: ghost-frontend
+    template:
+      metadata:
+        labels:
+          app: ghost
+      spec:
+        containers:
+        - args:
+          - cd /var/www/ghost/photos.touraycloud.com; sudo chown ghostadmin:ghostadmin
+            /content; touch /content/logs; ghost start; tail -f /content/logs /dev/null;
+          command:
+          - /usr/bin/bash
+          - -c
+          image: 857893918939.dkr.ecr.us-east-1.amazonaws.com/touraycloud
+          imagePullPolicy: Always
+          name: ghost
+          ports:
+          - containerPort: 2368
+            protocol: TCP
+          resources:
+            requests:
+              memory: "953Mi"
+              cpu: "1000m"
+            limits:
+              memory: "1200Mi"
+              cpu: "2000m"
+          securityContext:
+            allowPrivilegeEscalation: true
+            runAsUser: 1000
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /content
+            name: ghost-efs-vol
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: ghost-efs-vol
+          persistentVolumeClaim:
+            claimName: ghost-efs-pvc
+kind: List
